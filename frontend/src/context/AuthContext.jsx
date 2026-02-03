@@ -1,14 +1,12 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import authService from "../services/authService";
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
+  return ctx;
 };
 
 export const AuthProvider = ({ children }) => {
@@ -16,46 +14,47 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load user from localStorage on mount
-    const currentUser = authService.getCurrentUser();
-    setUser(currentUser);
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) setUser(JSON.parse(storedUser));
     setLoading(false);
   }, []);
 
-const login = async (email, password) => {
-  const data = await authService.login(email, password);
-
-  // ✅ PERSIST USER FOR RELOADS
-  localStorage.setItem("user", JSON.stringify(data.data.user));
-
-  setUser(data.data.user);
-  return data;
-};
-
-
-  const register = async (userData) => {
-    const data = await authService.register(userData);
-    setUser(data.data.user);
-    return data;
+  const login = async (email, password) => {
+    const res = await authService.login(email, password);
+    localStorage.setItem("user", JSON.stringify(res.data.user));
+    localStorage.setItem("token", res.data.token);
+    setUser(res.data.user);
+    return res;
   };
 
-const logout = () => {
-  authService.logout();
-  localStorage.removeItem("user");
-  setUser(null);
-};
-
-
-  const value = {
-    user,
-    login,
-    register,
-    logout,
-    isAuthenticated: !!user,
-    loading,
+  const register = async (data) => {
+    const res = await authService.register(data);
+    localStorage.setItem("user", JSON.stringify(res.data.user));
+    localStorage.setItem("token", res.data.token);
+    setUser(res.data.user);
+    return res;
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  const logout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    setUser(null);
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        register,
+        logout,
+        isAuthenticated: !!user,
+        loading,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export default AuthContext;

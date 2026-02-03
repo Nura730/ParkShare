@@ -1,17 +1,19 @@
-const db = require("../config/database");
-
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 /**
- * Register a new user
+ * 🧪 DEMO MODE STORAGE (in-memory)
+ * Data resets when server restarts
+ */
+const demoUsers = [];
+
+/**
+ * Register a new user (DEMO)
  */
 exports.register = async (req, res) => {
   try {
-    const { email, password, full_name, phone, role, verification_doc_url } =
-      req.body;
+    const { email, password, full_name, phone, role } = req.body;
 
-    // Validate required fields
     if (!email || !password || !full_name || !phone || !role) {
       return res.status(400).json({
         success: false,
@@ -19,108 +21,90 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Validate role
     const validRoles = ["driver", "owner", "admin"];
     if (!validRoles.includes(role)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid role. Must be driver, owner, or admin",
+        message: "Invalid role",
       });
     }
 
-    // Check if user already exists
-    const [existingUsers] = await db.query(
-      "SELECT id FROM users WHERE email = ?",
-      [email],
-    );
-
-    if (existingUsers.length > 0) {
+    const existingUser = demoUsers.find((u) => u.email === email);
+    if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: "User with this email already exists",
+        message: "User already exists",
       });
     }
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const password_hash = await bcrypt.hash(password, salt);
+    const password_hash = await bcrypt.hash(password, 10);
 
-    // Insert user
-    const [result] = await db.query(
-      `INSERT INTO users (email, password_hash, full_name, phone, role, verification_doc_url) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        email,
-        password_hash,
-        full_name,
-        phone,
-        role,
-        verification_doc_url || null,
-      ],
-    );
+    const newUser = {
+      id: demoUsers.length + 1,
+      email,
+      password_hash,
+      full_name,
+      phone,
+      role,
+      verification_status: "demo",
+      created_at: new Date(),
+    };
 
-    // Generate JWT token
+    demoUsers.push(newUser);
+
     const token = jwt.sign(
-      { id: result.insertId, email, role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE || "7d" },
+      { id: newUser.id, role: newUser.role },
+      process.env.JWT_SECRET || "demo_secret",
+      { expiresIn: "7d" }
     );
 
     res.status(201).json({
       success: true,
-      message: "User registered successfully",
+      message: "Demo registration successful",
       data: {
         user: {
-          id: result.insertId,
+          id: newUser.id,
           email,
           full_name,
           phone,
           role,
+          verification_status: "demo",
         },
         token,
       },
     });
-  } catch (error) {
-    console.error("Register error:", error);
+  } catch (err) {
+    console.error("Demo register error:", err);
     res.status(500).json({
       success: false,
-      message: "Server error during registration",
+      message: "Demo registration failed",
     });
   }
 };
 
 /**
- * Login user
+ * Login user (DEMO)
  */
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validate input
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Please provide email and password",
+        message: "Email and password required",
       });
     }
 
-    // Check if user exists
-    const [users] = await db.query("SELECT * FROM users WHERE email = ?", [
-      email,
-    ]);
-
-    if (users.length === 0) {
+    const user = demoUsers.find((u) => u.email === email);
+    if (!user) {
       return res.status(401).json({
         success: false,
         message: "Invalid credentials",
       });
     }
 
-    const user = users[0];
-
-    // Check password
     const isMatch = await bcrypt.compare(password, user.password_hash);
-
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -128,16 +112,15 @@ exports.login = async (req, res) => {
       });
     }
 
-    // Generate JWT token
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRE || "7d" },
+      { id: user.id, role: user.role },
+      process.env.JWT_SECRET || "demo_secret",
+      { expiresIn: "7d" }
     );
 
     res.json({
       success: true,
-      message: "Login successful",
+      message: "Demo login successful",
       data: {
         user: {
           id: user.id,
@@ -145,84 +128,66 @@ exports.login = async (req, res) => {
           full_name: user.full_name,
           phone: user.phone,
           role: user.role,
-          verification_status: user.verification_status,
+          verification_status: "demo",
         },
         token,
       },
     });
-  } catch (error) {
-    console.error("Login error:", error);
+  } catch (err) {
+    console.error("Demo login error:", err);
     res.status(500).json({
       success: false,
-      message: "Server error during login",
+      message: "Demo login failed",
     });
   }
 };
 
 /**
- * Get current user profile
+ * Get profile (DEMO)
  */
 exports.getProfile = async (req, res) => {
-  try {
-    const [users] = await db.query(
-      "SELECT id, email, full_name, phone, role, verification_status, created_at FROM users WHERE id = ?",
-      [req.user.id],
-    );
+  const user = demoUsers.find((u) => u.id === req.user.id);
 
-    if (users.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    res.json({
-      success: true,
-      data: users[0],
-    });
-  } catch (error) {
-    console.error("Get profile error:", error);
-    res.status(500).json({
+  if (!user) {
+    return res.status(404).json({
       success: false,
-      message: "Server error",
+      message: "User not found",
     });
   }
+
+  res.json({
+    success: true,
+    data: {
+      id: user.id,
+      email: user.email,
+      full_name: user.full_name,
+      phone: user.phone,
+      role: user.role,
+      verification_status: "demo",
+      created_at: user.created_at,
+    },
+  });
 };
 
 /**
- * Update user profile
+ * Update profile (DEMO)
  */
 exports.updateProfile = async (req, res) => {
-  try {
-    const { full_name, phone } = req.body;
-    const updates = {};
+  const user = demoUsers.find((u) => u.id === req.user.id);
 
-    if (full_name) updates.full_name = full_name;
-    if (phone) updates.phone = phone;
-
-    if (Object.keys(updates).length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "No fields to update",
-      });
-    }
-
-    const setClause = Object.keys(updates)
-      .map((key) => `${key} = ?`)
-      .join(", ");
-    const values = [...Object.values(updates), req.user.id];
-
-    await db.query(`UPDATE users SET ${setClause} WHERE id = ?`, values);
-
-    res.json({
-      success: true,
-      message: "Profile updated successfully",
-    });
-  } catch (error) {
-    console.error("Update profile error:", error);
-    res.status(500).json({
+  if (!user) {
+    return res.status(404).json({
       success: false,
-      message: "Server error",
+      message: "User not found",
     });
   }
+
+  const { full_name, phone } = req.body;
+  if (full_name) user.full_name = full_name;
+  if (phone) user.phone = phone;
+
+  res.json({
+    success: true,
+    message: "Profile updated (demo)",
+  });
 };

@@ -63,8 +63,9 @@ const [mapCenter, setMapCenter] = useState([12.9716, 77.5946]);
   };
 
 useEffect(() => {
-  searchParking(mapCenter[0], mapCenter[1]);
-}, []);
+  searchParking(mapCenter.lat, mapCenter.lng);
+}, [mapCenter]);
+
 
 
   const handleMarkerClick = (spot) => {

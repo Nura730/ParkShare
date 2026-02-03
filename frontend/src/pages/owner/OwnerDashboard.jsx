@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../../context/AuthContext";
 import {
   getOwnerListings,
   getOwnerEarnings,
@@ -8,7 +7,7 @@ import {
 import "./Owner.css";
 
 const OwnerDashboard = () => {
-  const { user } = useAuth();
+  //const { user } = useAuth();
 
   // Backend data (read-only)
   const [backendListings, setBackendListings] = useState([]);

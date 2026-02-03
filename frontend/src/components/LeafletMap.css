@@ -1,0 +1,142 @@
+.leaflet-map-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 500px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.leaflet-map {
+  width: 100%;
+  height: 100%;
+  min-height: 500px;
+  border-radius: 16px;
+  z-index: 1;
+}
+
+/* Custom Popup Styling */
+.parking-popup {
+  padding: 0.5rem;
+  min-width: 200px;
+}
+
+.parking-popup h4 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.popup-address {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
+}
+
+.popup-details {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.popup-price,
+.popup-slots {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: #555;
+  font-weight: 600;
+}
+
+.popup-badge {
+  background: linear-gradient(135deg, #ec4899, #f43f5e);
+  color: white;
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  text-align: center;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.map-popup {
+  padding: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.map-popup strong {
+  color: #333;
+}
+
+/* Map Legend */
+.map-legend {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  padding: 1rem;
+  border-radius: 12px;
+  min-width: 150px;
+}
+
+.map-legend h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.legend-marker {
+  font-size: 1.2rem;
+}
+
+.legend-marker.blue {
+  filter: drop-shadow(0 0 3px #06b6d4);
+}
+
+.legend-marker.pink {
+  color: #ec4899;
+  font-weight: 700;
+  filter: drop-shadow(0 0 3px #ec4899);
+}
+
+/* Override Leaflet default styles for dark theme */
+.leaflet-container {
+  background: var(--bg-secondary);
+  font-family: "Inter", sans-serif;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.leaflet-popup-tip {
+  background: white;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .map-legend {
+    bottom: 10px;
+    right: 10px;
+    padding: 0.75rem;
+  }
+
+  .parking-popup {
+    min-width: 180px;
+  }
+}

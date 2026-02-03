@@ -132,42 +132,53 @@ const GoogleMapComponent = ({
         />
 
         {/* Parking spot markers */}
-        {parkingSpots.map((spot) => (
-          <Marker
-            key={spot.id}
-            position={{ lat: spot.latitude, lng: spot.longitude }}
-            onClick={() => onMarkerClick(spot)}
-            icon={{
-              url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
-            }}
-          />
-        ))}
+        {parkingSpots
+          .filter(
+            (spot) =>
+              typeof spot.latitude === "number" &&
+              typeof spot.longitude === "number",
+          )
+          .map((spot) => (
+            <Marker
+              key={spot.id}
+              position={{
+                lat: Number(spot.latitude),
+                lng: Number(spot.longitude),
+              }}
+              onClick={() => onMarkerClick(spot)}
+              icon={{
+                url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
+              }}
+            />
+          ))}
 
         {/* Info window for selected spot */}
-        {selectedSpot && (
-          <InfoWindow
-            position={{
-              lat: selectedSpot.latitude,
-              lng: selectedSpot.longitude,
-            }}
-            onCloseClick={onCloseInfo}
-          >
-            <div className="map-info-window">
-              <h3>{selectedSpot.title}</h3>
-              <p className="info-address">{selectedSpot.address}</p>
-              <div className="info-details">
-                <div className="info-item">
-                  <FiDollarSign />
-                  <span>₹{selectedSpot.price_per_hour}/hour</span>
-                </div>
-                <div className="info-item">
-                  <FiClock />
-                  <span>{selectedSpot.available_slots} slots available</span>
+        {selectedSpot &&
+          typeof selectedSpot.latitude === "number" &&
+          typeof selectedSpot.longitude === "number" && (
+            <InfoWindow
+              position={{
+                lat: selectedSpot.latitude,
+                lng: selectedSpot.longitude,
+              }}
+              onCloseClick={onCloseInfo}
+            >
+              <div className="map-info-window">
+                <h3>{selectedSpot.title}</h3>
+                <p className="info-address">{selectedSpot.address}</p>
+                <div className="info-details">
+                  <div className="info-item">
+                    <FiDollarSign />
+                    <span>₹{selectedSpot.price_per_hour}/hour</span>
+                  </div>
+                  <div className="info-item">
+                    <FiClock />
+                    <span>{selectedSpot.available_slots} slots available</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          </InfoWindow>
-        )}
+            </InfoWindow>
+          )}
       </GoogleMap>
     </LoadScript>
   );

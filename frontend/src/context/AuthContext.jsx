@@ -22,11 +22,16 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (email, password) => {
-    const data = await authService.login(email, password);
-    setUser(data.data.user);
-    return data;
-  };
+const login = async (email, password) => {
+  const data = await authService.login(email, password);
+
+  // ✅ PERSIST USER FOR RELOADS
+  localStorage.setItem("user", JSON.stringify(data.data.user));
+
+  setUser(data.data.user);
+  return data;
+};
+
 
   const register = async (userData) => {
     const data = await authService.register(userData);
@@ -34,10 +39,12 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
-  const logout = () => {
-    authService.logout();
-    setUser(null);
-  };
+const logout = () => {
+  authService.logout();
+  localStorage.removeItem("user");
+  setUser(null);
+};
+
 
   const value = {
     user,

@@ -1,21 +1,28 @@
 import React, { useState, useEffect } from "react";
+import { useAuth } from "../../context/AuthContext";
 import {
   getOwnerListings,
   getOwnerEarnings,
   getOwnerAnalytics,
-  createListing,
-  updateListing,
-  deleteListing,
 } from "../../services/ownerService";
 import "./Owner.css";
 
 const OwnerDashboard = () => {
-  const [listings, setListings] = useState([]);
-  const [earnings, setEarnings] = useState(null);
-  const [analytics, setAnalytics] = useState(null);
+  const { user } = useAuth();
+
+  // Backend data (read-only)
+  const [backendListings, setBackendListings] = useState([]);
+  const [earnings, setEarnings] = useState({});
+  const [analytics, setAnalytics] = useState({});
   const [loading, setLoading] = useState(true);
+
+  // Demo (local) data – USED FOR CREATE / EDIT / DELETE
+  const [demoListings, setDemoListings] = useState([]);
+
+  // UI state
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingListing, setEditingListing] = useState(null);
+
   const [formData, setFormData] = useState({
     parkingName: "",
     address: "",
@@ -23,65 +30,82 @@ const OwnerDashboard = () => {
     latitude: "",
     longitude: "",
     pricePerHour: "",
+    availableSlots: "",
     spaceType: "covered",
     amenities: "",
   });
 
+  // Load backend data (safe even if backend is partial)
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [lRes, eRes, aRes] = await Promise.all([
+          getOwnerListings().catch(() => ({ data: [] })),
+          getOwnerEarnings().catch(() => ({ data: {} })),
+          getOwnerAnalytics().catch(() => ({ data: {} })),
+        ]);
+
+        setBackendListings(lRes.data || []);
+        setEarnings(eRes.data || {});
+        setAnalytics(aRes.data || {});
+      } catch (err) {
+        console.error("Owner dashboard load error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchData();
   }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [listingsRes, earningsRes, analyticsRes] = await Promise.all([
-        getOwnerListings(),
-        getOwnerEarnings(),
-        getOwnerAnalytics(),
-      ]);
-      setListings(listingsRes.data || []);
-      setEarnings(earningsRes.data || {});
-      setAnalytics(analyticsRes.data || {});
-    } catch (error) {
-      console.error("Error fetching owner data:", error);
-    } finally {
-      setLoading(false);
-    }
+  // Use demo listings if available, else backend listings
+  const listings =
+    demoListings.length > 0 ? demoListings : backendListings;
+
+  const resetForm = () => {
+    setFormData({
+      parkingName: "",
+      address: "",
+      locationName: "",
+      latitude: "",
+      longitude: "",
+      pricePerHour: "",
+      availableSlots: "",
+      spaceType: "covered",
+      amenities: "",
+    });
   };
 
-  const handleSubmit = async (e) => {
+  // CREATE / UPDATE (DEMO MODE)
+  const handleSubmit = (e) => {
     e.preventDefault();
-    try {
-      const listingData = {
-        parking_name: formData.parkingName,
-        address: formData.address,
-        location_name: formData.locationName,
-        latitude: parseFloat(formData.latitude),
-        longitude: parseFloat(formData.longitude),
-        price_per_hour: parseFloat(formData.pricePerHour),
-        space_type: formData.spaceType,
-        amenities: formData.amenities,
-      };
 
-      if (editingListing) {
-        await updateListing(editingListing.id, listingData);
-        alert("Listing updated successfully!");
-      } else {
-        await createListing(listingData);
-        alert("Listing created successfully!");
-      }
+    const newListing = {
+      id: editingListing?.id || Date.now(),
+      parking_name: formData.parkingName,
+      address: formData.address,
+      location_name: formData.locationName,
+      latitude: formData.latitude,
+      longitude: formData.longitude,
+      price_per_hour: formData.pricePerHour,
+      available_slots: formData.availableSlots,
+      space_type: formData.spaceType,
+      amenities: formData.amenities,
+      availability_status: "available",
+    };
 
-      setShowAddModal(false);
-      setEditingListing(null);
-      resetForm();
-      fetchData();
-    } catch (error) {
-      console.error("Error saving listing:", error);
-      alert(
-        "Failed to save listing: " +
-          (error.response?.data?.message || error.message),
+    if (editingListing) {
+      setDemoListings((prev) =>
+        prev.map((l) => (l.id === editingListing.id ? newListing : l))
       );
+    } else {
+      setDemoListings((prev) => [...prev, newListing]);
     }
+
+    setShowAddModal(false);
+    setEditingListing(null);
+    resetForm();
   };
 
   const handleEdit = (listing) => {
@@ -93,45 +117,22 @@ const OwnerDashboard = () => {
       latitude: listing.latitude,
       longitude: listing.longitude,
       pricePerHour: listing.price_per_hour,
+      availableSlots: listing.available_slots,
       spaceType: listing.space_type,
       amenities: listing.amenities || "",
     });
     setShowAddModal(true);
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this listing?"))
-      return;
-
-    try {
-      await deleteListing(id);
-      alert("Listing deleted successfully!");
-      fetchData();
-    } catch (error) {
-      console.error("Error deleting listing:", error);
-      alert("Failed to delete listing");
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      parkingName: "",
-      address: "",
-      locationName: "",
-      latitude: "",
-      longitude: "",
-      pricePerHour: "",
-      spaceType: "covered",
-      amenities: "",
-    });
+  const handleDelete = (id) => {
+    if (!window.confirm("Delete this listing?")) return;
+    setDemoListings((prev) => prev.filter((l) => l.id !== id));
   };
 
   if (loading) {
     return (
       <div className="owner-page">
-        <div className="container">
-          <div className="loading">Loading...</div>
-        </div>
+        <div className="loading">Loading…</div>
       </div>
     );
   }
@@ -139,232 +140,174 @@ const OwnerDashboard = () => {
   return (
     <div className="owner-page">
       <div className="container">
-        <h1 className="page-title">🏢 Owner Dashboard</h1>
+        <h1>🏢 Owner Dashboard</h1>
 
-        {/* Earnings Stats */}
+        {/* DEMO TAGLINE (IMPORTANT FOR IBM) */}
+        <p className="demo-tagline">
+          ⚠️ Demo Prototype: This project demonstrates the real-world idea and
+          UI workflow of parking sharing. Data persistence and advanced backend
+          logic are simplified for demonstration purposes.
+        </p>
+
+        {/* STATS */}
         <div className="stats-grid">
-          <div className="stat-card earnings">
-            <div className="stat-icon">💰</div>
-            <div className="stat-content">
-              <h3>₹{earnings?.totalEarnings?.toFixed(2) || "0.00"}</h3>
-              <p>Total Earnings</p>
-            </div>
+          <div className="stat-card">
+            <h3>₹{earnings?.totalEarnings || 0}</h3>
+            <p>Total Earnings</p>
           </div>
           <div className="stat-card">
-            <div className="stat-icon">🅿️</div>
-            <div className="stat-content">
-              <h3>{listings.length}</h3>
-              <p>Active Listings</p>
-            </div>
+            <h3>{listings.length}</h3>
+            <p>Listings</p>
           </div>
           <div className="stat-card">
-            <div className="stat-icon">📊</div>
-            <div className="stat-content">
-              <h3>{analytics?.totalBookings || 0}</h3>
-              <p>Total Bookings</p>
-            </div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-icon">⭐</div>
-            <div className="stat-content">
-              <h3>{analytics?.averageRating?.toFixed(1) || "N/A"}</h3>
-              <p>Avg Rating</p>
-            </div>
+            <h3>{analytics?.totalBookings || 0}</h3>
+            <p>Bookings</p>
           </div>
         </div>
 
-        {/* Listings Section */}
+        {/* LISTINGS */}
         <div className="section-header">
-          <h2>My Parking Listings</h2>
+          <h2>My Listings</h2>
           <button
             className="btn-primary"
             onClick={() => {
-              setEditingListing(null);
               resetForm();
+              setEditingListing(null);
               setShowAddModal(true);
             }}
           >
-            + Add New Listing
+            + Add Listing
           </button>
         </div>
 
         <div className="listings-grid">
-          {listings.length === 0 ? (
-            <div className="empty-state">
-              <p>No listings yet. Create your first listing!</p>
-            </div>
-          ) : (
-            listings.map((listing) => (
-              <div key={listing.id} className="listing-card">
-                <div className="card-header">
-                  <h3>{listing.parking_name}</h3>
-                  <span
-                    className={`status-badge ${listing.availability_status}`}
-                  >
-                    {listing.availability_status}
-                  </span>
-                </div>
-                <div className="card-body">
-                  <p className="address">📍 {listing.address}</p>
-                  <p className="location">🏢 {listing.location_name}</p>
-                  <div className="details-row">
-                    <span className="detail-item">
-                      💰 ₹{listing.price_per_hour}/hr
-                    </span>
-                    <span className="detail-item">🅿️ {listing.space_type}</span>
-                  </div>
-                  {listing.amenities && (
-                    <p className="amenities">✨ {listing.amenities}</p>
-                  )}
-                </div>
-                <div className="card-actions">
-                  <button
-                    className="btn-edit"
-                    onClick={() => handleEdit(listing)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="btn-delete"
-                    onClick={() => handleDelete(listing.id)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))
+          {listings.length === 0 && (
+            <p>No listings yet. Add your first parking space.</p>
           )}
+
+          {listings.map((l) => (
+            <div key={l.id} className="listing-card">
+              <h3>{l.parking_name}</h3>
+              <p>📍 {l.address}</p>
+              <p>₹{l.price_per_hour}/hr</p>
+              <p>Slots: {l.available_slots}</p>
+              <p>Type: {l.space_type}</p>
+
+              <div className="card-actions">
+                <button onClick={() => handleEdit(l)}>Edit</button>
+                <button onClick={() => handleDelete(l.id)}>Delete</button>
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* Add/Edit Modal */}
+        {/* MODAL */}
         {showAddModal && (
           <div
             className="modal-overlay"
-            onClick={() => {
-              setShowAddModal(false);
-              setEditingListing(null);
-            }}
+            onClick={() => setShowAddModal(false)}
           >
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-              <h2>{editingListing ? "Edit Listing" : "Add New Listing"}</h2>
+            <div
+              className="modal-content"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2>{editingListing ? "Edit" : "Create"} Listing</h2>
+
               <form onSubmit={handleSubmit}>
-                <div className="form-group">
-                  <label>Parking Name *</label>
-                  <input
-                    type="text"
-                    value={formData.parkingName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, parkingName: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Address *</label>
-                  <input
-                    type="text"
-                    value={formData.address}
-                    onChange={(e) =>
-                      setFormData({ ...formData, address: e.target.value })
-                    }
-                    required
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Location Name *</label>
-                  <input
-                    type="text"
-                    value={formData.locationName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, locationName: e.target.value })
-                    }
-                    placeholder="e.g., Koramangala, Bangalore"
-                    required
-                  />
-                </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Latitude *</label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={formData.latitude}
-                      onChange={(e) =>
-                        setFormData({ ...formData, latitude: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Longitude *</label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={formData.longitude}
-                      onChange={(e) =>
-                        setFormData({ ...formData, longitude: e.target.value })
-                      }
-                      required
-                    />
-                  </div>
-                </div>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Price per Hour (₹) *</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.pricePerHour}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          pricePerHour: e.target.value,
-                        })
-                      }
-                      required
-                      min="0"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Space Type *</label>
-                    <select
-                      value={formData.spaceType}
-                      onChange={(e) =>
-                        setFormData({ ...formData, spaceType: e.target.value })
-                      }
-                    >
-                      <option value="covered">Covered</option>
-                      <option value="open">Open</option>
-                      <option value="underground">Underground</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label>Amenities</label>
-                  <input
-                    type="text"
-                    value={formData.amenities}
-                    onChange={(e) =>
-                      setFormData({ ...formData, amenities: e.target.value })
-                    }
-                    placeholder="e.g., CCTV, Security, 24x7 Access"
-                  />
-                </div>
-                <div className="modal-actions">
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={() => {
-                      setShowAddModal(false);
-                      setEditingListing(null);
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn-primary">
-                    {editingListing ? "Update" : "Create"} Listing
-                  </button>
-                </div>
+                <input
+                  placeholder="Parking Name"
+                  value={formData.parkingName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, parkingName: e.target.value })
+                  }
+                  required
+                />
+                <input
+                  placeholder="Address"
+                  value={formData.address}
+                  onChange={(e) =>
+                    setFormData({ ...formData, address: e.target.value })
+                  }
+                  required
+                />
+                <input
+                  placeholder="Location Name"
+                  value={formData.locationName}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      locationName: e.target.value,
+                    })
+                  }
+                  required
+                />
+                <input
+                  placeholder="Latitude"
+                  value={formData.latitude}
+                  onChange={(e) =>
+                    setFormData({ ...formData, latitude: e.target.value })
+                  }
+                  required
+                />
+                <input
+                  placeholder="Longitude"
+                  value={formData.longitude}
+                  onChange={(e) =>
+                    setFormData({ ...formData, longitude: e.target.value })
+                  }
+                  required
+                />
+                <input
+                  placeholder="Price per Hour"
+                  value={formData.pricePerHour}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      pricePerHour: e.target.value,
+                    })
+                  }
+                  required
+                />
+                <input
+                  placeholder="Available Slots"
+                  value={formData.availableSlots}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      availableSlots: e.target.value,
+                    })
+                  }
+                  required
+                />
+
+                <select
+                  value={formData.spaceType}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      spaceType: e.target.value,
+                    })
+                  }
+                >
+                  <option value="covered">Covered</option>
+                  <option value="open">Open</option>
+                  <option value="underground">Underground</option>
+                </select>
+
+                <input
+                  placeholder="Amenities"
+                  value={formData.amenities}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      amenities: e.target.value,
+                    })
+                  }
+                />
+
+                <button type="submit" className="btn-primary">
+                  Save
+                </button>
               </form>
             </div>
           </div>

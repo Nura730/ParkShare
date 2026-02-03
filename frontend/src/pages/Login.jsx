@@ -55,32 +55,8 @@ const Login = () => {
     }
   };
 
-  // Quick login helpers for demo
-  const quickLogin = (email, password, role) => {
-    setFormData({ email, password });
-    toast.success(`Demo ${role} credentials loaded!`, { icon: "🎭" });
-  };
 
-  const demoAccounts = [
-    {
-      email: "driver1@example.com",
-      password: "password123",
-      role: "Driver",
-      color: "#6366f1",
-    },
-    {
-      email: "owner1@example.com",
-      password: "password123",
-      role: "Owner",
-      color: "#ec4899",
-    },
-    {
-      email: "admin@parkshare.com",
-      password: "password123",
-      role: "Admin",
-      color: "#06b6d4",
-    },
-  ];
+
 
   return (
     <div className="auth-container">
@@ -144,24 +120,7 @@ const Login = () => {
           </p>
         </div>
 
-        {/* Demo Credentials */}
-        <div className="demo-credentials glass">
-          <h4>🎭 Quick Demo Login</h4>
-          <div className="demo-buttons">
-            {demoAccounts.map((account, index) => (
-              <button
-                key={index}
-                onClick={() =>
-                  quickLogin(account.email, account.password, account.role)
-                }
-                className="btn-demo glass-button"
-                style={{ borderColor: account.color }}
-              >
-                <span style={{ color: account.color }}>●</span> {account.role}
-              </button>
-            ))}
-          </div>
-        </div>
+
       </motion.div>
     </div>
   );

@@ -341,3 +341,96 @@
     font-size: 2rem;
   }
 }
+.simple-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.simple-form input,
+.simple-form select {
+  padding: 12px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+.demo-note {
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 8px;
+}
+/* ===== Enhanced Create Listing Modal ===== */
+
+.modal-content {
+  max-width: 720px;
+  padding: 28px;
+  border-radius: 14px;
+}
+
+.modal-content h2 {
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+/* Grid layout for inputs */
+.modal-content form {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+/* Inputs & Select */
+.modal-content input,
+.modal-content select {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  outline: none;
+  background: #fafafa;
+  transition: all 0.2s ease;
+}
+
+/* Full-width rows */
+.modal-content input:nth-child(1),
+.modal-content input:nth-child(2),
+.modal-content input:nth-child(3) {
+  grid-column: span 1;
+}
+
+/* Focus state */
+.modal-content input:focus,
+.modal-content select:focus {
+  border-color: #6a5acd;
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(106, 90, 205, 0.15);
+}
+
+/* Amenities should be wider */
+.modal-content input[placeholder="Amenities"] {
+  grid-column: span 2;
+}
+
+/* Save button */
+.modal-content button.btn-primary {
+  grid-column: span 1;
+  height: 42px;
+  font-size: 15px;
+  border-radius: 10px;
+  margin-top: auto;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .modal-content form {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-content input,
+  .modal-content select,
+  .modal-content button {
+    grid-column: span 1 !important;
+  }
+}

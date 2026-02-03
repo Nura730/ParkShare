@@ -15,10 +15,7 @@ const SearchParking = () => {
   const initialLocation = queryParams.get("location") || "Bangalore";
 
   const [locationSearch, setLocationSearch] = useState(initialLocation);
-  const [mapCenter, setMapCenter] = useState({
-    lat: 12.9716,
-    lng: 77.5946,
-  });
+const [mapCenter, setMapCenter] = useState([12.9716, 77.5946]);
   const [parkingSpots, setParkingSpots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedSpot, setSelectedSpot] = useState(null);
@@ -44,11 +41,12 @@ const SearchParking = () => {
     { name: "Electronic City", lat: 12.8456, lng: 77.6603 },
   ];
 
-  const handleLocationSelect = (location) => {
-    setMapCenter({ lat: location.lat, lng: location.lng });
-    setLocationSearch(location.name);
-    searchParking(location.lat, location.lng);
-  };
+ const handleLocationSelect = (location) => {
+  setMapCenter([location.lat, location.lng]);
+  setLocationSearch(location.name);
+  searchParking(location.lat, location.lng);
+};
+
 
   const searchParking = async (lat, lng) => {
     setLoading(true);
@@ -64,9 +62,10 @@ const SearchParking = () => {
     }
   };
 
-  useEffect(() => {
-    searchParking(mapCenter.lat, mapCenter.lng);
-  }, []);
+useEffect(() => {
+  searchParking(mapCenter[0], mapCenter[1]);
+}, []);
+
 
   const handleMarkerClick = (spot) => {
     setSelectedSpot(spot);

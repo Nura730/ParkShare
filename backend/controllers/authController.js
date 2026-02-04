@@ -2,13 +2,13 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 /**
- * 🧪 DEMO MODE STORAGE (in-memory)
- * Data resets when server restarts
+ * DEMO USERS (in-memory)
+ * Resets when server restarts
  */
 const demoUsers = [];
 
 /**
- * Register a new user (DEMO)
+ * REGISTER (DEMO MODE)
  */
 exports.register = async (req, res) => {
   try {
@@ -17,29 +17,21 @@ exports.register = async (req, res) => {
     if (!email || !password || !full_name || !phone || !role) {
       return res.status(400).json({
         success: false,
-        message: "Please provide all required fields",
+        message: "All fields are required",
       });
     }
 
-    const validRoles = ["driver", "owner", "admin"];
-    if (!validRoles.includes(role)) {
+    const existing = demoUsers.find((u) => u.email === email);
+    if (existing) {
       return res.status(400).json({
         success: false,
-        message: "Invalid role",
-      });
-    }
-
-    const existingUser = demoUsers.find((u) => u.email === email);
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "User already exists",
+        message: "User already exists (demo)",
       });
     }
 
     const password_hash = await bcrypt.hash(password, 10);
 
-    const newUser = {
+    const user = {
       id: demoUsers.length + 1,
       email,
       password_hash,
@@ -47,13 +39,12 @@ exports.register = async (req, res) => {
       phone,
       role,
       verification_status: "demo",
-      created_at: new Date(),
     };
 
-    demoUsers.push(newUser);
+    demoUsers.push(user);
 
     const token = jwt.sign(
-      { id: newUser.id, role: newUser.role },
+      { id: user.id, role: user.role },
       process.env.JWT_SECRET || "demo_secret",
       { expiresIn: "7d" }
     );
@@ -63,7 +54,7 @@ exports.register = async (req, res) => {
       message: "Demo registration successful",
       data: {
         user: {
-          id: newUser.id,
+          id: user.id,
           email,
           full_name,
           phone,
@@ -75,40 +66,30 @@ exports.register = async (req, res) => {
     });
   } catch (err) {
     console.error("Demo register error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Demo registration failed",
-    });
+    res.status(500).json({ success: false, message: "Demo register failed" });
   }
 };
 
 /**
- * Login user (DEMO)
+ * LOGIN (DEMO MODE)
  */
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Email and password required",
-      });
-    }
-
     const user = demoUsers.find((u) => u.email === email);
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials",
+        message: "Invalid credentials (demo)",
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password_hash);
-    if (!isMatch) {
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) {
       return res.status(401).json({
         success: false,
-        message: "Invalid credentials",
+        message: "Invalid credentials (demo)",
       });
     }
 
@@ -135,59 +116,6 @@ exports.login = async (req, res) => {
     });
   } catch (err) {
     console.error("Demo login error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Demo login failed",
-    });
+    res.status(500).json({ success: false, message: "Demo login failed" });
   }
-};
-
-/**
- * Get profile (DEMO)
- */
-exports.getProfile = async (req, res) => {
-  const user = demoUsers.find((u) => u.id === req.user.id);
-
-  if (!user) {
-    return res.status(404).json({
-      success: false,
-      message: "User not found",
-    });
-  }
-
-  res.json({
-    success: true,
-    data: {
-      id: user.id,
-      email: user.email,
-      full_name: user.full_name,
-      phone: user.phone,
-      role: user.role,
-      verification_status: "demo",
-      created_at: user.created_at,
-    },
-  });
-};
-
-/**
- * Update profile (DEMO)
- */
-exports.updateProfile = async (req, res) => {
-  const user = demoUsers.find((u) => u.id === req.user.id);
-
-  if (!user) {
-    return res.status(404).json({
-      success: false,
-      message: "User not found",
-    });
-  }
-
-  const { full_name, phone } = req.body;
-  if (full_name) user.full_name = full_name;
-  if (phone) user.phone = phone;
-
-  res.json({
-    success: true,
-    message: "Profile updated (demo)",
-  });
 };

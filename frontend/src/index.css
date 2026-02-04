@@ -32,6 +32,13 @@ body {
   background-color: var(--bg-primary);
 }
 
+/* Mobile: Adjust for smaller navbar */
+@media (max-width: 768px) {
+  .App {
+    padding-top: 60px;
+  }
+}
+
 code {
   font-family:
     "JetBrains Mono", source-code-pro, Menlo, Monaco, Consolas, "Courier New",

@@ -1,17 +1,19 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import ThemeToggle from "./ThemeToggle";
-import { FiSearch } from "react-icons/fi";
+import { FiSearch, FiMenu, FiX } from "react-icons/fi";
 import "./Navbar.css";
 
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate("/login");
+    setIsMenuOpen(false);
   };
 
   const getDashboardLink = () => {
@@ -29,22 +31,42 @@ const Navbar = () => {
     }
   };
 
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+  };
+
   return (
     <nav className="navbar glass">
       <div className="navbar-container">
-        <Link to="/" className="navbar-logo">
+        <Link to="/" className="navbar-logo" onClick={closeMenu}>
           <img src="/logo.png" alt="ParkShare" className="logo-img" />
           <span className="logo-text">ParkShare</span>
         </Link>
 
-        <ul className="navbar-menu">
+        <button
+          className="mobile-menu-toggle"
+          onClick={toggleMenu}
+          aria-label="Toggle menu"
+        >
+          {isMenuOpen ? <FiX /> : <FiMenu />}
+        </button>
+
+        <ul className={`navbar-menu ${isMenuOpen ? "open" : ""}`}>
           <li>
-            <Link to="/" className="nav-link">
+            <Link to="/" className="nav-link" onClick={closeMenu}>
               Home
             </Link>
           </li>
           <li>
-            <Link to="/search" className="nav-link nav-link-search">
+            <Link
+              to="/search"
+              className="nav-link nav-link-search"
+              onClick={closeMenu}
+            >
               <FiSearch /> Find Parking
             </Link>
           </li>
@@ -52,7 +74,11 @@ const Navbar = () => {
           {isAuthenticated ? (
             <>
               <li>
-                <Link to={getDashboardLink()} className="nav-link">
+                <Link
+                  to={getDashboardLink()}
+                  className="nav-link"
+                  onClick={closeMenu}
+                >
                   Dashboard
                 </Link>
               </li>
@@ -74,12 +100,16 @@ const Navbar = () => {
           ) : (
             <>
               <li>
-                <Link to="/login" className="nav-link">
+                <Link to="/login" className="nav-link" onClick={closeMenu}>
                   Login
                 </Link>
               </li>
               <li>
-                <Link to="/register" className="btn-register">
+                <Link
+                  to="/register"
+                  className="btn-register"
+                  onClick={closeMenu}
+                >
                   Get Started
                 </Link>
               </li>

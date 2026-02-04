@@ -49,7 +49,13 @@ Some backend logic is simplified to demonstrate workflows rather than production
 - Simplified database logic
 - Limited error handling
 
+
+## Demo Mode Notice
+This application runs in demo mode for evaluation purposes.
+Database persistence and payment flows are intentionally disabled.
+
 ## Future Enhancements
 - Real-time slot availability
 - Payment integration
 - Admin analytics dashboard
+
